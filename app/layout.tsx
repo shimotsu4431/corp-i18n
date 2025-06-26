@@ -41,6 +41,11 @@ export default async function RootLayout({ children }: Props) {
         defer
         src={`//js.hs-scripts.com/${process.env.HUBSPOT_PORTAL_ID}.js`}
       ></Script>
+      <Script
+        src="//j.wovn.io/1"
+        data-wovnio={`key=${process.env.NEXT_PUBLIC_WOVN_KEY}`}
+        async
+      ></Script>
       <body className={styles.body}>
         <Header />
         <main>{children}</main>

@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import { useState, useRef } from 'react';
 import useWovnLang from '@/app/hooks/useWovnLang';
 import useClickOutside from '@/app/hooks/useClickOutside';
@@ -28,7 +29,7 @@ export default function LanguageSwitcher() {
   return (
     <div className={styles.languageSwitcher} ref={menuRef}>
       <div className={styles.languageButton} onClick={() => setIsOpen(!isOpen)}>
-        Language
+        <Image src="/lang.svg" alt="Language" width={24} height={24} />
       </div>
       {/* isOpenの状態に応じてCSSクラスをトグルする */}
       <ul className={`${styles.languageMenu} ${isOpen ? styles.isOpen : ''}`}>

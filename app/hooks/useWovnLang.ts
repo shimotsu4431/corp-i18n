@@ -11,16 +11,14 @@ declare global {
   }
 }
 
+const WOVN_LANG_STORAGE_KEY = 'wovn_lang';
+
 export default function useWovnLang() {
-  // 初期値を 'ja' に設定
   const [currentLang, setCurrentLang] = useState<string>('ja');
 
   useEffect(() => {
-    // ユーザーが言語を一度でも変更したかセッションストレージで確認
-    const langHasBeenChanged = sessionStorage.getItem('langChanged') === 'true';
-
-    // 現在のWOVN言語を取得するヘルパー関数
-    const getLang = () => {
+    // WOVNから現在の言語を取得するヘルパー関数
+    const getLangFromWovn = () => {
       if (window.WOVN && window.WOVN.io) {
         const lang = window.WOVN.io.getCurrentLang();
         return lang.code || lang;
@@ -28,33 +26,39 @@ export default function useWovnLang() {
       return null;
     };
 
-    // WOVNと状態を同期する関数
-    const syncWithWovn = () => {
-      const lang = getLang();
+    // WOVNの言語が変更されたときに状態を更新するハンドラ
+    const handleWovnLangChange = () => {
+      const lang = getLangFromWovn();
       if (lang) {
         setCurrentLang(lang);
-      } else {
-        // WOVNがロードされていない場合はリトライ
-        setTimeout(syncWithWovn, 100);
+        // sessionStorageにも保存
+        sessionStorage.setItem(WOVN_LANG_STORAGE_KEY, lang);
       }
     };
 
-    // 言語が以前に変更されたことがある場合のみ、WOVNの言語と同期する
-    if (langHasBeenChanged) {
-      syncWithWovn();
+    // --- 初期化ロジック ---
+    // 最初にsessionStorageを確認
+    const savedLang = sessionStorage.getItem(WOVN_LANG_STORAGE_KEY);
+    if (savedLang) {
+      // 保存された言語があればそれで初期化
+      setCurrentLang(savedLang);
+    } else {
+      // なければ、WOVNライブラリの準備ができてから言語を取得して設定
+      const initialCheckTimeout = setTimeout(() => {
+        const lang = getLangFromWovn();
+        if (lang) {
+          setCurrentLang(lang);
+        }
+      }, 500); // 500ms待ってから確認
+
+      // タイムアウトをクリーンアップ
+      return () => clearTimeout(initialCheckTimeout);
     }
 
-    // WOVNの言語が変更されたときに発火するイベントリスナー
-    const handleWovnLangChange = () => {
-      const lang = getLang();
-      if (lang) {
-        setCurrentLang(lang);
-      }
-    };
-
+    // WOVNの言語変更イベントを購読
     window.addEventListener('wovnLangChanged', handleWovnLangChange);
 
-    // クリーンアップ
+    // コンポーネントがアンマウントされるときにイベントリスナーを解除
     return () => {
       window.removeEventListener('wovnLangChanged', handleWovnLangChange);
     };
@@ -64,9 +68,8 @@ export default function useWovnLang() {
   const changeLang = (langCode: string) => {
     if (window.WOVN && window.WOVN.io) {
       window.WOVN.io.changeLang(langCode);
-      // 言語が変更されたことをセッションストレージに記録
-      sessionStorage.setItem('langChanged', 'true');
-      // UIを即座に更新
+      // sessionStorageとstateを即座に更新してUIに反映
+      sessionStorage.setItem(WOVN_LANG_STORAGE_KEY, langCode);
       setCurrentLang(langCode);
     }
   };
